@@ -22,8 +22,7 @@ Auto attack codes are in `auto_attacks`
 For AT_fixlr_[*layers] with a PreAct ResNet-18 on CIFAR-10 under L_inf threat model (8/255), run codes as follows, 
 ```
 python train_cifar10_fixlr.py --target-layers 3 4
-``` 
-You can configure the target layers as needed, e.g., "1", "1 2", "1 2 3", "2 3 4", etc.
+```
 
 For AT_wp_[*layers] with a PreAct ResNet-18 on CIFAR-10 under L_inf threat model (8/255), run codes as follows, 
 ```
