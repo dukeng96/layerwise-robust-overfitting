@@ -31,7 +31,7 @@ def get_args():
     parser.add_argument('--l2', default=0, type=float)
     parser.add_argument('--l1', default=0, type=float)
     parser.add_argument('--batch-size', default=128, type=int)
-    parser.add_argument('--data-dir', default='../cifar-data', type=str)
+    parser.add_argument('--data-dir', default='./data', type=str)
     parser.add_argument('--epochs', default=200, type=int)
     parser.add_argument('--lr-schedule', default='piecewise', choices=['superconverge', 'piecewise', 'linear', 'piecewisesmoothed', 'piecewisezoom', 'onedrop', 'multipledecay', 'cosine'])
     parser.add_argument('--lr-max', default=0.1, type=float)
@@ -59,24 +59,11 @@ def get_args():
     parser.add_argument('--val', action='store_true')
     parser.add_argument('--chkpt-iters', default=10, type=int)
     parser.add_argument('--target-layers', nargs='+', type=int)
-    parser.add_argument('--version', default='A', type=str)
-    parser.add_argument('--run', default=1, type=int)
-    parser.add_argument('--device', default=None, nargs='+', type=int)
 
     return parser.parse_args()
 
 
 args = get_args()
-# if args.device is not None:
-#     device_str = ""
-#     for device_id in args.device:
-#         device_str += str(device_id) + ","
-#     device_str = device_str.strip(",")
-#     device = torch.device(f"cuda:{device_str}")
-#     print(device_str)
-    # torch.cuda.set_per_process_memory_fraction(0.8, device=device)
-if args.device is not None:
-    device = torch.device(f"cuda:{args.device[0]}" if torch.cuda.is_available() else "cpu")
 mu = torch.tensor(cifar10_mean).view(3, 1, 1).to(device)
 std = torch.tensor(cifar10_std).view(3, 1, 1).to(device)
 
@@ -185,7 +172,7 @@ def main():
     args = get_args()
 
     import csv
-    RESULT_PATH = f"{args.data_dir}/result/version={args.version}_run={args.run}_dataset=cifar10_lr={args.lr_schedule}_norm={args.norm}_target_layers={args.target_layers}_model={args.model}.csv"
+    RESULT_PATH = f"{args.data_dir}/result/fixlr_dataset=cifar10_lr={args.lr_schedule}_norm={args.norm}_target_layers={args.target_layers}_model={args.model}.csv"
     MODEL_PATH = f"{args.data_dir}/model/"
     header = ["epoch", "train_acc", "train_loss", "train_robust_acc", "train_robust_loss", "test_acc", "test_loss", "test_robust_acc", "test_robust_loss"]
     with open(RESULT_PATH, 'w', encoding='UTF8') as f:

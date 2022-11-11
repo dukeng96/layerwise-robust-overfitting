@@ -17,7 +17,6 @@ import os
 from wideresnet import WideResNet
 from preactresnet import PreActResNet18
 from utils_awp import AdvWeightPerturb
-from ultils_rwp import RobustWeightPerturb
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -38,7 +37,7 @@ def get_args():
     parser.add_argument('--l2', default=0, type=float)
     parser.add_argument('--l1', default=0, type=float)
     parser.add_argument('--batch-size', default=128, type=int)
-    parser.add_argument('--data-dir', default='../cifar100-data', type=str)
+    parser.add_argument('--data-dir', default='./data', type=str)
     parser.add_argument('--epochs', default=200, type=int)
     parser.add_argument('--lr-schedule', default='piecewise', choices=['superconverge', 'piecewise'])
     parser.add_argument('--lr-max', default=0.1, type=float)
@@ -62,15 +61,11 @@ def get_args():
     parser.add_argument('--awp-gamma', default=0.01, type=float)
     parser.add_argument('--awp-warmup', default=0, type=int)
     parser.add_argument('--target-layers', nargs='+', type=int)
-    parser.add_argument('--rwp', action='store_true')
-    parser.add_argument('--version', default='B', type=str)
-    parser.add_argument('--run', default=1, type=int)
-    parser.add_argument('--device', default=None, nargs='+', type=int)
     return parser.parse_args()
 
 args = get_args()
-if args.device is not None:
-    device = torch.device(f"cuda:{args.device[0]}" if torch.cuda.is_available() else "cpu")
+# if args.device is not None:
+#     device = torch.device(f"cuda:{args.device[0]}" if torch.cuda.is_available() else "cpu")
     # torch.cuda.set_per_process_memory_fraction(0.8, device=device)
 mu = torch.tensor(CIFAR100_MEAN).view(3, 1, 1).to(device)
 std = torch.tensor(CIFAR100_STD).view(3, 1, 1).to(device)
@@ -161,7 +156,7 @@ def main():
     args = get_args()
 
     import csv
-    RESULT_PATH = f"{args.data_dir}/result/version={args.version}_run={args.run}_dataset=cifar100_lr={args.lr_schedule}_norm={args.norm}_target_layers={args.target_layers}_model={args.model}.csv"
+    RESULT_PATH = f"{args.data_dir}/result/wp_dataset=cifar100_lr={args.lr_schedule}_norm={args.norm}_target_layers={args.target_layers}_model={args.model}.csv"
     MODEL_PATH = f"{args.data_dir}/model/"
     header = ["epoch", "train_acc", "train_loss", "train_robust_acc", "train_robust_loss", "test_acc", "test_loss", "test_robust_acc", "test_robust_loss"]
     with open(RESULT_PATH, 'w', encoding='UTF8') as f:
@@ -251,12 +246,8 @@ def main():
 
     opt = torch.optim.SGD(params, lr=args.lr_max, momentum=0.9, weight_decay=5e-4)
     proxy_opt = torch.optim.SGD(proxy.parameters(), lr=0.01)
-    if args.rwp:
-        rwp_adversary = RobustWeightPerturb(model=model, proxy_1=proxy_proxy, proxy_2=proxy, proxy_2_optim=proxy_opt,
-                                        gamma=args.awp_gamma, layers=args.target_layers, model_type=args.model)
-    else:
-        rwp_adversary = AdvWeightPerturb(model=model, proxy=proxy, proxy_optim=proxy_opt, gamma=args.awp_gamma,
-                                         layers=args.target_layers, model_type=args.model)
+    rwp_adversary = AdvWeightPerturb(model=model, proxy=proxy, proxy_optim=proxy_opt, gamma=args.awp_gamma,
+                                     layers=args.target_layers, model_type=args.model)
 
     criterion = nn.CrossEntropyLoss()
 

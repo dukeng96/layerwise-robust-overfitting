@@ -34,7 +34,7 @@ def get_args():
     parser.add_argument('--l1', default=0, type=float)
     parser.add_argument('--batch-size', default=128, type=int)
     parser.add_argument('--batch-size-test', default=128, type=int)
-    parser.add_argument('--data-dir', default='data', type=str)
+    parser.add_argument('--data-dir', default='./data', type=str)
     parser.add_argument('--epochs', default=200, type=int)
     parser.add_argument('--lr-schedule', default='piecewise', choices=['superconverge', 'piecewise', 'linear', 'piecewisesmoothed', 'piecewisezoom', 'onedrop', 'multipledecay', 'cosine', 'cyclic'])
     parser.add_argument('--lr-max', default=0.1, type=float)
@@ -178,7 +178,7 @@ def main():
     args = get_args()
 
     import csv
-    RESULT_PATH = f"{args.data_dir}/result/dataset=cifar10_lr={args.lr_schedule}_norm={args.norm}_target_layers={args.target_layers}_model={args.model}.csv"
+    RESULT_PATH = f"{args.data_dir}/result/wp_dataset=cifar10_lr={args.lr_schedule}_norm={args.norm}_target_layers={args.target_layers}_model={args.model}.csv"
     MODEL_PATH = f"{args.data_dir}/model/"
     header = ["epoch", "train_acc", "train_loss", "train_robust_acc", "train_robust_loss", "test_acc", "test_loss", "test_robust_acc", "test_robust_loss"]
     with open(RESULT_PATH, 'w', encoding='UTF8') as f:

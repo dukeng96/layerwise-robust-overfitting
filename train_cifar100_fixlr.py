@@ -58,9 +58,6 @@ def get_args():
     parser.add_argument('--mixup', action='store_true')
     parser.add_argument('--mixup-alpha', type=float)
     parser.add_argument('--target-layers', nargs='+', type=int)
-    parser.add_argument('--version', default='A', type=str)
-    parser.add_argument('--run', default=1, type=int)
-    parser.add_argument('--device', default=None, nargs='+', type=int)
     return parser.parse_args()
 
 
@@ -158,7 +155,7 @@ def main():
     args = get_args()
 
     import csv
-    RESULT_PATH = f"{args.data_dir}/result/version={args.version}_run={args.run}_dataset=cifar100_lr={args.lr_schedule}_norm={args.norm}_target_layers={args.target_layers}_model={args.model}.csv"
+    RESULT_PATH = f"{args.data_dir}/result/fixlr_dataset=cifar100_lr={args.lr_schedule}_norm={args.norm}_target_layers={args.target_layers}_model={args.model}.csv"
     MODEL_PATH = f"{args.data_dir}/model/"
     header = ["epoch", "train_acc", "train_loss", "train_robust_acc", "train_robust_loss", "test_acc", "test_loss", "test_robust_acc", "test_robust_loss"]
     with open(RESULT_PATH, 'w', encoding='UTF8') as f:
