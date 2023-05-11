@@ -14,6 +14,7 @@ import os
 
 from wideresnet import WideResNet
 from preactresnet import PreActResNet18
+from vgg import vgg19
 
 from utils import *
 
@@ -51,7 +52,9 @@ def get_args():
     parser.add_argument('--val', action='store_true')
     parser.add_argument('--chkpt-iters', default=10, type=int)
     parser.add_argument('--target-layers', nargs='+', type=int)
-
+    parser.add_argument('--freeze', default=False, action='store_true')
+    parser.add_argument('--warmup', default=True, action='store_true')
+    parser.add_argument('--warmup-mode', default="clean", choices=['clean', 'robust'])
     return parser.parse_args()
 
 
@@ -161,11 +164,47 @@ def attack_pgd(model, X, y, epsilon, alpha, attack_iters, restarts,
     return max_delta
 
 
+def freeze_layers(args, model, target_layers):
+    layer_map = {
+        1: [0,1,2,3,4,5,6,7,8,9],
+        2: [10,11,12,13,14,15,16,17,18],
+        3: [19,20,21,22,23,24,25,26,27],
+        4: [28,29,30,31,32,33,34,35,36]
+                 }
+    if args.model == "vgg19":
+        frozen_layers = []
+        for i in target_layers:
+            frozen_layers.extend(layer_map[i])
+    else:
+        frozen_layers = target_layers
+
+    if args.warmup_mode == "clean":
+        checkpoint = torch.load(f"{args.data_dir}/warmup_clean_100.pth")
+    else:
+        checkpoint = torch.load(f"{args.data_dir}/warmup_robust_100_{args.lr_schedule}.pth")
+    model.load_state_dict(checkpoint)
+    # logger.info(f"=> loaded checkpoint at epoch: {checkpoint['epoch']}, test_err: {checkpoint['best_err']}")
+    for all_layer in model.children():  # Use this when use DataParallel
+        if args.model == "vgg19":
+            all_sub_layers = list(all_layer.children())[0]
+        else:
+            all_sub_layers = all_layer.children()
+        for i, layer in enumerate(all_sub_layers):
+            if i in frozen_layers:
+                # logger.info(f"Freeze layer {i}")
+                # logger.info(layer)
+                for param in layer.parameters():
+                    param.requires_grad = False
+    opt = torch.optim.SGD(model.parameters(), lr=args.lr_max, momentum=0.9, weight_decay=5e-4)
+
+    return model, opt
+
+
 def main():
     args = get_args()
 
     import csv
-    RESULT_PATH = f"{args.data_dir}/result/fixlr_dataset=cifar10_lr={args.lr_schedule}_norm={args.norm}_target_layers={args.target_layers}_model={args.model}.csv"
+    RESULT_PATH = f"{args.data_dir}/result/freeze_dataset=cifar10_lr={args.lr_schedule}_norm={args.norm}_target_layers={args.target_layers}_model={args.model}.csv"
     MODEL_PATH = f"{args.data_dir}/model/"
     header = ["epoch", "train_acc", "train_loss", "train_robust_acc", "train_robust_loss", "test_acc", "test_loss", "test_robust_acc", "test_robust_loss"]
     with open(RESULT_PATH, 'w', encoding='UTF8') as f:
@@ -220,6 +259,8 @@ def main():
         model = PreActResNet18()
     elif args.model == 'WideResNet':
         model = WideResNet(34, 10, widen_factor=args.width_factor, dropRate=0.0)
+    elif args.model == "vgg19":
+        model = vgg19()
     else:
         raise ValueError("Unknown model")
 
@@ -301,21 +342,10 @@ def main():
             return
         logger.info("[Evaluation mode]")
 
-    # Optimize different layer with different learning rate
-    l0 = []
-    l1, l2, l3, l4 = get_layers(args.model)
-    layer_list_map = {-1: l0, 1: l1, 2: l2, 3: l3, 4: l4}
-    layer_list = []
-    for i in args.target_layers:
-        layer_list += layer_list_map[i]
-
-    params = list(map(lambda x: x[1], list(filter(lambda kv: kv[0] in layer_list, model.named_parameters()))))
-    base_params = list(
-        map(lambda x: x[1], list(filter(lambda kv: kv[0] not in layer_list, model.named_parameters()))))
-    opt = torch.optim.SGD([{'params': base_params}, {'params': params, 'lr': args.lr_max}], lr=args.lr_max, momentum=0.9,
-                          weight_decay=5e-4)
-    logger.info(
-        f"Train layers {args.target_layers} with lr=0.1. Train other layers with normal piecewise decay")
+    # Freeze layer
+    opt = torch.optim.SGD(model.parameters(), lr=args.lr_max, momentum=0.9, weight_decay=5e-4)
+    if args.freeze:
+        model, opt = freeze_layers(args, model, args.target_layers)
 
     logger.info('Epoch \t Train Time \t Test Time \t LR \t \t Train Loss \t Train Acc \t Train Robust Loss \t Train Robust Acc \t Test Loss \t Test Acc \t Test Robust Loss \t Test Robust Acc')
     for epoch in range(start_epoch, epochs):
@@ -466,28 +496,28 @@ def main():
                         }, os.path.join(args.fname, f'model_val.pth'))
                     best_val_robust_acc = val_robust_acc/val_n
 
-            # save last checkpoint
+            # # save checkpoint
             # if (epoch+1) % args.chkpt_iters == 0 or epoch+1 == epochs:
             #     torch.save(model.state_dict(), os.path.join(args.fname, f'model_{epoch}.pth'))
-                # torch.save(opt.state_dict(), os.path.join(args.fname, f'opt_{epoch}.pth'))
-            if epoch == 199 and args.target_layers == [3, 4]:
-                torch.save({
-                        'state_dict':model.state_dict(),
-                        'test_robust_acc':test_robust_acc/test_n,
-                        'test_robust_loss':test_robust_loss/test_n,
-                        'test_loss':test_loss/test_n,
-                        'test_acc':test_acc/test_n,
-                    }, os.path.join(MODEL_PATH, f'fixlr_{args.model}_cifar10_{args.norm}_{args.target_layers}_last.pth'))
+            #     torch.save(opt.state_dict(), os.path.join(args.fname, f'opt_{epoch}.pth'))
+
+            if not args.freeze:
+                if args.attack == "none":
+                    torch.save(model.state_dict(), os.path.join(args.data_dir, f'warmup_clean_100.pth'))
+                else:
+                    if args.warmup:
+                        torch.save(model.state_dict(), os.path.join(args.data_dir, f'warmup_robust_100_{args.lr_schedule}.pth'))
+
 
             # save best
-            if test_robust_acc/test_n > best_test_robust_acc and args.target_layers == [3, 4]:
+            if test_robust_acc/test_n > best_test_robust_acc:
                 torch.save({
                         'state_dict':model.state_dict(),
                         'test_robust_acc':test_robust_acc/test_n,
                         'test_robust_loss':test_robust_loss/test_n,
                         'test_loss':test_loss/test_n,
                         'test_acc':test_acc/test_n,
-                    }, os.path.join(MODEL_PATH, f'fixlr_{args.model}_cifar10_{args.norm}_{args.target_layers}_best.pth'))
+                    }, os.path.join(MODEL_PATH, f'freeze_{args.model}_cifar10_{args.norm}_{args.target_layers}_best.pth'))
                 best_test_robust_acc = test_robust_acc/test_n
         else:
             logger.info('%d \t %.1f \t \t %.1f \t \t %.4f \t %.4f \t %.4f \t %.4f \t \t %.4f \t \t %.4f \t %.4f \t %.4f \t \t %.4f',

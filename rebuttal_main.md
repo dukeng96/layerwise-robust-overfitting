@@ -33,7 +33,7 @@ We sincerely thank you for the comprehensive comments on our paper and please fi
 
 **Q1:** The contributions and novelty are fairly limited.
 
-**A1:** Our main contribution is the discovery of different properties of each network layer towards the robust overfitting phenomenon. Our methods serve to highlight that the latter layers are more sensitive to robust overfitting, and thus constraining its optimization can significantly reduce overfitting. There could be better methods of achieving this goal, instead of training with a fixed learning rate or AWP for latter layers. It is still an open question to design an optimal method that utilize this discovery, and we hope future researchs can achieve this.  
+**A1:** Our main contribution is the discovery of different properties of each network layer towards the robust overfitting phenomenon. Our methods serve to highlight that the latter layers are more sensitive to robust overfitting, and thus constraining its optimization can significantly reduce overfitting. There could be better methods of achieving this goal, instead of training with a fixed learning rate or AWP for latter layers. It is still an open question to design an optimal method that utilize this discovery, and we hope future researchs can achieve this. Although our methods do not considerably outperform AWP, our experiments show that AWP if not applied to the latter layers will not be effective in mitigating robust overfitting. 
 
 **Q2:** The deeper layers/blocks are known to have many more parameters, thus it is not entirely surprising that the latter layers contribute more to overfitting
 
