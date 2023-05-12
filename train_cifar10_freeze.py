@@ -178,12 +178,6 @@ def freeze_layers(args, model, target_layers):
     else:
         frozen_layers = target_layers
 
-    if args.warmup_mode == "clean":
-        checkpoint = torch.load(f"{args.data_dir}/warmup_clean_100.pth")
-    else:
-        checkpoint = torch.load(f"{args.data_dir}/warmup_robust_100_{args.lr_schedule}.pth")
-    model.load_state_dict(checkpoint)
-    # logger.info(f"=> loaded checkpoint at epoch: {checkpoint['epoch']}, test_err: {checkpoint['best_err']}")
     for all_layer in model.children():  # Use this when use DataParallel
         if args.model == "vgg19":
             all_sub_layers = list(all_layer.children())[0]
