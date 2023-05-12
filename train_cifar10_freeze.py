@@ -495,24 +495,24 @@ def main():
             #     torch.save(model.state_dict(), os.path.join(args.fname, f'model_{epoch}.pth'))
             #     torch.save(opt.state_dict(), os.path.join(args.fname, f'opt_{epoch}.pth'))
 
-            if not args.freeze:
-                if args.attack == "none":
-                    torch.save(model.state_dict(), os.path.join(args.data_dir, f'warmup_clean_100.pth'))
-                else:
-                    if args.warmup:
-                        torch.save(model.state_dict(), os.path.join(args.data_dir, f'warmup_robust_100_{args.lr_schedule}.pth'))
+            # if not args.freeze:
+            #     if args.attack == "none":
+            #         torch.save(model.state_dict(), os.path.join(args.data_dir, f'warmup_clean_100.pth'))
+            #     else:
+            #         if args.warmup:
+            #             torch.save(model.state_dict(), os.path.join(args.data_dir, f'warmup_robust_100_{args.lr_schedule}.pth'))
 
 
             # save best
-            if test_robust_acc/test_n > best_test_robust_acc:
-                torch.save({
-                        'state_dict':model.state_dict(),
-                        'test_robust_acc':test_robust_acc/test_n,
-                        'test_robust_loss':test_robust_loss/test_n,
-                        'test_loss':test_loss/test_n,
-                        'test_acc':test_acc/test_n,
-                    }, os.path.join(MODEL_PATH, f'freeze_{args.model}_cifar10_{args.norm}_{args.target_layers}_best.pth'))
-                best_test_robust_acc = test_robust_acc/test_n
+            # if test_robust_acc/test_n > best_test_robust_acc:
+            #     torch.save({
+            #             'state_dict':model.state_dict(),
+            #             'test_robust_acc':test_robust_acc/test_n,
+            #             'test_robust_loss':test_robust_loss/test_n,
+            #             'test_loss':test_loss/test_n,
+            #             'test_acc':test_acc/test_n,
+            #         }, os.path.join(MODEL_PATH, f'freeze_{args.model}_cifar10_{args.norm}_{args.target_layers}_best.pth'))
+            #     best_test_robust_acc = test_robust_acc/test_n
         else:
             logger.info('%d \t %.1f \t \t %.1f \t \t %.4f \t %.4f \t %.4f \t %.4f \t \t %.4f \t \t %.4f \t %.4f \t %.4f \t \t %.4f',
                 epoch, train_time - start_time, test_time - train_time, -1,
