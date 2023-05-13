@@ -185,7 +185,7 @@ def freeze_layers(args, model, target_layers):
             all_sub_layers = all_layer.children()
         for i, layer in enumerate(all_sub_layers):
             if i in frozen_layers:
-                # logger.info(f"Freeze layer {i}")
+                print(f"Freeze layer {i}")
                 # logger.info(layer)
                 for param in layer.parameters():
                     param.requires_grad = False
@@ -198,7 +198,7 @@ def main():
     args = get_args()
 
     import csv
-    RESULT_PATH = f"{args.data_dir}/result/freeze_dataset=cifar10_lr={args.lr_schedule}_norm={args.norm}_target_layers={args.target_layers}_model={args.model}.csv"
+    RESULT_PATH = f"{args.data_dir}/result/freeze_dataset=cifar10_lr={args.lr_schedule}_norm={args.norm}_target_layers={args.target_layers}_model={args.model}_atk={args.attack}.csv"
     MODEL_PATH = f"{args.data_dir}/model/"
     header = ["epoch", "train_acc", "train_loss", "train_robust_acc", "train_robust_loss", "test_acc", "test_loss", "test_robust_acc", "test_robust_loss"]
     with open(RESULT_PATH, 'w', encoding='UTF8') as f:
@@ -260,7 +260,6 @@ def main():
 
     model = nn.DataParallel(model)
     model.to(device)
-    model.train()
 
     if args.l2:
         decay, no_decay = [], []
@@ -339,6 +338,7 @@ def main():
     # Freeze layer
     opt = torch.optim.SGD(model.parameters(), lr=args.lr_max, momentum=0.9, weight_decay=5e-4)
     if args.freeze:
+        print("freeze!")
         model, opt = freeze_layers(args, model, args.target_layers)
 
     logger.info('Epoch \t Train Time \t Test Time \t LR \t \t Train Loss \t Train Acc \t Train Robust Loss \t Train Robust Acc \t Test Loss \t Test Acc \t Test Robust Loss \t Test Robust Acc')
